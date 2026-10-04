@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,336 +8,245 @@
     <title>AI Meeting Assistant</title>
 
     <link rel="stylesheet" href="style.css">
+
+
+    <style>
+        /* Meeting History */
+
+        .meeting-history {
+            margin-bottom: 30px;
+        }
+
+        .meeting-history .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .meeting-history h2 {
+            color: #f8fafc;
+            margin: 0;
+        }
+
+        #meetingHistory {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .meeting-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 16px 18px;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            transition: all 0.2s ease;
+        }
+
+        .meeting-card:hover {
+            border-color: #64748b;
+            transform: translateY(-2px);
+        }
+
+        .meeting-card h3 {
+            margin: 0 0 8px 0;
+            color: #f8fafc;
+            font-size: 17px;
+        }
+
+        .meeting-card p {
+            margin: 5px 0;
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        .meeting-card button {
+            background: #2563eb;
+            color: white;
+
+            border: none;
+            border-radius: 8px;
+
+            padding: 10px 16px;
+
+            font-size: 14px;
+            font-weight: 600;
+
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .meeting-card button:hover {
+            background: #1d4ed8;
+        }
+    </style>
 </head>
 
 <body>
 
-    <!-- =========================
-         MAIN APP
-         ========================= -->
+    <header class="header">
+        <div>
+            <h1>🤖 AI Meeting Assistant</h1>
+            <p>Smart real-time meeting support</p>
+        </div>
 
-    <div class="app">
+        <div class="meeting-status">
+            <span class="status-dot"></span>
+            LIVE
+        </div>
+    </header>
 
-        <!-- =========================
-             SIDEBAR
-             ========================= -->
 
-        <aside class="sidebar">
+    <main class="container">
 
-            <div class="logo">
-                <div class="logo-icon">AI</div>
-                <div>
-                    <h2>Meeting AI</h2>
-                    <span>Assistant</span>
-                </div>
+
+        <!-- Meeting History -->
+        <section class="meeting-history">
+
+            <div class="section-title">
+                <h2>📋 Meeting History</h2>
             </div>
 
-            <nav class="sidebar-menu">
+            <div id="meetingHistory">
+                <p>Loading meeting history...</p>
+            </div>
 
-                <a href="#" class="menu-item active">
-                    <span>▣</span>
-                    <span>Meeting</span>
-                </a>
+        </section>
 
-                <a href="#" class="menu-item">
-                    <span>◷</span>
-                    <span>History</span>
-                </a>
+        <!-- Participants -->
+        <section class="participants-section">
 
-                <a href="#" class="menu-item">
-                    <span>⚙</span>
-                    <span>Settings</span>
-                </a>
+            <h2>Participants</h2>
 
-            </nav>
+            <div class="participants">
 
-        </aside>
-
-
-        <!-- =========================
-             MAIN CONTENT
-             ========================= -->
-
-        <main class="main-content">
-
-            <!-- HEADER -->
-
-            <header class="top-header">
-
-                <div>
-                    <p class="small-title">AI MEETING ASSISTANT</p>
-                    <h1>Product Discussion</h1>
+                <div class="participant">
+                    <div class="avatar">R</div>
+                    <h3>Rupesh</h3>
+                    <p>🎤 Speaking</p>
                 </div>
 
-                <!-- LIVE STATUS -->
-
-                <div class="live-status live" id="liveStatus">
-
-                    <span class="live-dot" id="liveDot"></span>
-
-                    <span id="liveText">LIVE</span>
-
+                <div class="participant">
+                    <div class="avatar">A</div>
+                    <h3>Amit</h3>
+                    <p>🎤 Listening</p>
                 </div>
 
-            </header>
+                <div class="participant">
+                    <div class="avatar">R</div>
+                    <h3>Rahul</h3>
+                    <p>🎤 Listening</p>
+                </div>
+
+                <div class="participant">
+                    <div class="avatar">P</div>
+                    <h3>Priya</h3>
+                    <p>🎤 Listening</p>
+                </div>
+
+            </div>
+
+        </section>
 
 
-            <!-- =========================
-                 MEETING AREA
-                 ========================= -->
+        <!-- Meeting Area -->
+        <section class="meeting-area">
 
-            <section class="meeting-grid">
+            <!-- Live Transcript -->
+            <div class="transcript">
 
-                <!-- LEFT / MAIN AREA -->
+                <div class="section-title">
+                    <h2>📝 Live Transcript</h2>
+                    <span>Live</span>
+                </div>
 
-                <div class="meeting-main">
+                <div class="messages">
 
-                    <!-- Meeting Information -->
-
-                    <div class="meeting-card">
-
-                        <div class="card-header">
-
-                            <div>
-                                <h2>Product Discussion</h2>
-                                <p>AI assisted meeting</p>
-                            </div>
-
-                            <span class="meeting-time" id="meetingTimer">
-                                00:00
-                            </span>
-
-                        </div>
-
-
-                        <!-- Transcript -->
-
-                        <div class="transcript-section">
-
-                            <div class="section-title">
-
-                                <h3>Live Transcript</h3>
-
-                                <span class="listening" id="listeningStatus">
-                                    Listening...
-                                </span>
-
-                            </div>
-
-
-                            <div
-                                class="transcript"
-                                id="transcript"
-                            >
-
-                                <div class="empty-transcript">
-                                    <div class="mic-icon">🎙</div>
-
-                                    <h3>Waiting for conversation</h3>
-
-                                    <p>
-                                        Your meeting transcript will
-                                        appear here.
-                                    </p>
-                                </div>
-
-                            </div>
-
-                        </div>
-
+                    <div class="message">
+                        <strong>Amit:</strong>
+                        <p>What is Artificial Intelligence?</p>
                     </div>
 
-
-                    <!-- AI TOOLS -->
-
-                    <div class="meeting-card ai-tools">
-
-                        <div class="section-title">
-
-                            <div>
-                                <h3>AI Meeting Tools</h3>
-                                <p>
-                                    Get assistance during your meeting
-                                </p>
-                            </div>
-
-                        </div>
-
-
-                        <div class="tools-grid">
-
-                            <button
-                                class="tool-btn"
-                                id="summaryBtn"
-                            >
-                                <span>✦</span>
-                                <span>Summary</span>
-                            </button>
-
-
-                            <button
-                                class="tool-btn"
-                                id="actionItemsBtn"
-                            >
-                                <span>✓</span>
-                                <span>Action Items</span>
-                            </button>
-
-
-                            <button
-                                class="tool-btn"
-                                id="askAiBtn"
-                            >
-                                <span>AI</span>
-                                <span>Ask AI</span>
-                            </button>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- BOTTOM CONTROLS -->
-
-                    <div class="meeting-controls">
-
-                        <button
-                            class="control-btn"
-                            id="muteBtn"
-                        >
-                            🎙
-                            <span>Mute</span>
-                        </button>
-
-
-                        <button
-                            class="control-btn"
-                            id="summaryControlBtn"
-                        >
-                            ✦
-                            <span>Summary</span>
-                        </button>
-
-
-                        <button
-                            class="leave-btn"
-                            id="leaveMeetingBtn"
-                        >
-                            Leave Meeting
-                        </button>
-
+                    <div class="message">
+                        <strong>Rupesh:</strong>
+                        <p>
+                            Artificial Intelligence is a technology
+                            that enables machines to perform intelligent tasks.
+                        </p>
                     </div>
 
                 </div>
 
-
-                <!-- =========================
-                     RIGHT SIDEBAR
-                     ========================= -->
-
-                <aside class="meeting-sidebar">
-
-                    <!-- Participants -->
-
-                    <div class="side-card">
-
-                        <div class="side-card-header">
-
-                            <h3>Participants</h3>
-
-                            <span id="participantCount">
-                                1
-                            </span>
-
-                        </div>
+            </div>
 
 
-                        <div
-                            class="participants"
-                            id="participants"
-                        >
+            <!-- AI Assistant -->
+            <div class="ai-assistant">
 
-                            <div class="participant">
+                <h2>🤖 AI Assistant</h2>
 
-                                <div class="avatar">
-                                    K
-                                </div>
+                <div class="suggestion-box">
 
-                                <div class="participant-info">
+                    <h3>💡 AI Suggestion</h3>
 
-                                    <strong>You</strong>
+                    <p>
+                        Explain the concept with a simple
+                        real-world example.
+                    </p>
 
-                                    <span>Host</span>
+                </div>
 
-                                </div>
+                <div class="detected-topic">
 
-                                <span class="online-dot"></span>
+                    <h3>🔍 Detected Topic</h3>
 
-                            </div>
+                    <p>Artificial Intelligence</p>
 
-                        </div>
+                </div>
 
-                    </div>
+            </div>
 
-
-                    <!-- Meeting Details -->
-
-                    <div class="side-card">
-
-                        <h3>Meeting Details</h3>
-
-                        <div class="detail-item">
-
-                            <span>Topic</span>
-
-                            <strong>Product Discussion</strong>
-
-                        </div>
+        </section>
 
 
-                        <div class="detail-item">
+        <!-- Controls -->
+        <section class="controls">
 
-                            <span>Status</span>
+            <button class="btn mute-btn">
+                🎤 Mute
+            </button>
 
-                            <strong id="meetingStatus">
-                                Live
-                            </strong>
+            <button class="btn end-btn">
+                🔴 End Meeting
+            </button>
 
-                        </div>
+            <button class="btn summary-btn">
+                📋 Summary
+            </button>
 
-                    </div>
+            <button class="btn task-btn">
+                ✅ Action Items
+            </button>
 
+        </section>
 
-                    <!-- AI Suggestions -->
-
-                    <div class="side-card">
-
-                        <h3>AI Suggestions</h3>
-
-                        <div
-                            class="ai-suggestion"
-                            id="aiSuggestion"
-                        >
-                            AI suggestions will appear here
-                            during the meeting.
-                        </div>
-
-                    </div>
-
-                </aside>
-
-            </section>
-
-        </main>
-
-    </div>
+    </main>
 
 
-    <!-- =========================
-         JAVASCRIPT
-         ========================= -->
+
 
     <script src="js/meeting.js"></script>
 
+
+    <script>
+        loadMeetingHistory();
+    </script>
+
 </body>
+
 </html>
