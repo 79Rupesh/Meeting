@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Meeting Companion</title>
+
+    <link rel="stylesheet" href="/frontend/style.css">
+</head>
+
+<body>
+
+    <!-- =========================
+         COMPACT MEETING WINDOW
+    ========================== -->
+
+    <div class="meeting-window">
+
+        <!-- HEADER -->
+        <header class="compact-header">
+
+            <div class="brand">
+                <div class="brand-icon">🤖</div>
+
+                <div class="brand-text">
+                    <h1>AI Meeting</h1>
+                    <span>Meeting Companion</span>
+                </div>
+            </div>
+
+            <div class="header-actions">
+
+                <button class="menu-btn" onclick="toggleMenu()" title="Menu">
+                    ⋮
+                </button>
+
+                <div class="window-dot"></div>
+
+                <button class="close-btn" onclick="leaveMeeting()" title="Leave Meeting">
+                    ×
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- =================================
+     THREE DOT MENU
+================================= -->
+
+        <div id="meetingMenu" class="meeting-menu">
+
+            <button onclick="openHistoryFromMenu()">
+                🕘 Meeting History
+            </button>
+
+            <button onclick="getSummary(); closeMenu()">
+                📋 Summary
+            </button>
+
+            <button onclick="showActionItems(); closeMenu()">
+                ✅ Action Items
+            </button>
+
+            <button onclick="showDetectedTopic(); closeMenu()">
+                🔍 Topic
+            </button>
+
+            <div class="menu-divider"></div>
+
+            <button class="menu-leave" onclick="leaveFromMenu()">
+                🔴 Leave Meeting
+            </button>
+
+        </div>
+
+
+        <!-- =========================
+             MEETING INFO
+        ========================== -->
+
+        <div class="meeting-info">
+
+            <div class="live-status">
+                <span class="status-dot"></span>
+                LIVE
+            </div>
+
+            <span id="onlineCount">
+                0 Online
+            </span>
+
+        </div>
+
+
+        <!-- =========================
+             PARTICIPANTS
+        ========================== -->
+
+        <section class="participants-section">
+
+            <div class="section-heading">
+
+                <h2>👥 Participants</h2>
+
+                <span class="section-label">
+                    Online
+                </span>
+
+            </div>
+
+            <div id="participants" class="participants">
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             MAIN CONTENT
+        ========================== -->
+
+        <div class="main-content">
+
+
+            <!-- =====================
+                 LIVE TRANSCRIPT
+            ====================== -->
+
+            <section class="transcript card">
+
+                <div class="card-header">
+
+                    <h2>💬 Live Transcript</h2>
+
+                    <span class="live-text">
+                        ● Live
+                    </span>
+
+                </div>
+
+                <div id="messages" class="messages">
+                </div>
+
+            </section>
+
+
+            <!-- =====================
+                 AI ASSISTANT
+            ====================== -->
+
+            <section class="ai-assistant card">
+
+                <div class="card-header">
+
+                    <h2>✨ AI Assistant</h2>
+
+                    <span class="ai-status">
+                        AI
+                    </span>
+
+                </div>
+
+
+                <!-- QUESTION -->
+                <div class="ai-item question-item">
+
+                    <div class="ai-label">
+                        ❓ Question
+                    </div>
+
+                    <p id="questionDetected">
+                        Waiting for conversation...
+                    </p>
+
+                </div>
+
+
+
+                <!-- ANSWER -->
+                <div class="ai-item answer-item">
+
+                    <div class="ai-label">
+                        🤖 AI Answer
+                    </div>
+
+                    <p id="aiAnswer">
+                        Waiting for question...
+                    </p>
+
+                </div>
+
+
+                <!-- SUGGESTION -->
+                <div class="ai-item suggestion-item">
+
+                    <div class="ai-label">
+                        💡 Suggestion
+                    </div>
+
+                    <p id="aiSuggestion">
+                        Waiting for conversation...
+                    </p>
+
+                </div>
+
+
+                <!-- TOPIC -->
+                <div class="ai-topic">
+
+                    <span>
+                        🔍 Topic
+                    </span>
+
+                    <strong id="topic">
+                        No topic detected
+                    </strong>
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+
+
+
+        <!-- =========================
+             MESSAGE INPUT
+        ========================== -->
+
+        <div class="message-area">
+
+            <input type="text" id="messageInput" placeholder="Type message..." onkeydown="handleEnter(event)"
+                autocomplete="off">
+
+
+            <!-- SPEAKING -->
+            <button id="speechButton" class="icon-btn microphone-btn" onclick="togglePythonSpeaking()"
+                title="Start Speaking">
+                🎤
+            </button>
+
+
+            <!-- SEND -->
+            <button class="icon-btn send-btn" onclick="sendMessage()" title="Send Message">
+                ➤
+            </button>
+
+            <button id="systemAudioButton" class="icon-btn" onclick="toggleSystemAudio()" title="Start Meeting Audio">
+                🎧
+            </button>
+
+        </div>
+
+
+        <!-- SPEECH STATUS -->
+
+        <div id="speechStatus" class="speech-status" aria-live="polite">
+
+            Ready for authorized microphone input.
+
+        </div>
+
+
+    </div>
+
+
+    <!-- JAVASCRIPT -->
+
+    <script src="/frontend/js/meeting.js"></script>
+
+</body>
+
+</html>

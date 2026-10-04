@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Meeting Assistant</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- =========================
+         MAIN APP
+         ========================= -->
+
+    <div class="app">
+
+        <!-- =========================
+             SIDEBAR
+             ========================= -->
+
+        <aside class="sidebar">
+
+            <div class="logo">
+                <div class="logo-icon">AI</div>
+                <div>
+                    <h2>Meeting AI</h2>
+                    <span>Assistant</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+
+                <a href="#" class="menu-item active">
+                    <span>▣</span>
+                    <span>Meeting</span>
+                </a>
+
+                <a href="#" class="menu-item">
+                    <span>◷</span>
+                    <span>History</span>
+                </a>
+
+                <a href="#" class="menu-item">
+                    <span>⚙</span>
+                    <span>Settings</span>
+                </a>
+
+            </nav>
+
+        </aside>
+
+
+        <!-- =========================
+             MAIN CONTENT
+             ========================= -->
+
+        <main class="main-content">
+
+            <!-- HEADER -->
+
+            <header class="top-header">
+
+                <div>
+                    <p class="small-title">AI MEETING ASSISTANT</p>
+                    <h1>Product Discussion</h1>
+                </div>
+
+                <!-- LIVE STATUS -->
+
+                <div class="live-status live" id="liveStatus">
+
+                    <span class="live-dot" id="liveDot"></span>
+
+                    <span id="liveText">LIVE</span>
+
+                </div>
+
+            </header>
+
+
+            <!-- =========================
+                 MEETING AREA
+                 ========================= -->
+
+            <section class="meeting-grid">
+
+                <!-- LEFT / MAIN AREA -->
+
+                <div class="meeting-main">
+
+                    <!-- Meeting Information -->
+
+                    <div class="meeting-card">
+
+                        <div class="card-header">
+
+                            <div>
+                                <h2>Product Discussion</h2>
+                                <p>AI assisted meeting</p>
+                            </div>
+
+                            <span class="meeting-time" id="meetingTimer">
+                                00:00
+                            </span>
+
+                        </div>
+
+
+                        <!-- Transcript -->
+
+                        <div class="transcript-section">
+
+                            <div class="section-title">
+
+                                <h3>Live Transcript</h3>
+
+                                <span class="listening" id="listeningStatus">
+                                    Listening...
+                                </span>
+
+                            </div>
+
+
+                            <div
+                                class="transcript"
+                                id="transcript"
+                            >
+
+                                <div class="empty-transcript">
+                                    <div class="mic-icon">🎙</div>
+
+                                    <h3>Waiting for conversation</h3>
+
+                                    <p>
+                                        Your meeting transcript will
+                                        appear here.
+                                    </p>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- AI TOOLS -->
+
+                    <div class="meeting-card ai-tools">
+
+                        <div class="section-title">
+
+                            <div>
+                                <h3>AI Meeting Tools</h3>
+                                <p>
+                                    Get assistance during your meeting
+                                </p>
+                            </div>
+
+                        </div>
+
+
+                        <div class="tools-grid">
+
+                            <button
+                                class="tool-btn"
+                                id="summaryBtn"
+                            >
+                                <span>✦</span>
+                                <span>Summary</span>
+                            </button>
+
+
+                            <button
+                                class="tool-btn"
+                                id="actionItemsBtn"
+                            >
+                                <span>✓</span>
+                                <span>Action Items</span>
+                            </button>
+
+
+                            <button
+                                class="tool-btn"
+                                id="askAiBtn"
+                            >
+                                <span>AI</span>
+                                <span>Ask AI</span>
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- BOTTOM CONTROLS -->
+
+                    <div class="meeting-controls">
+
+                        <button
+                            class="control-btn"
+                            id="muteBtn"
+                        >
+                            🎙
+                            <span>Mute</span>
+                        </button>
+
+
+                        <button
+                            class="control-btn"
+                            id="summaryControlBtn"
+                        >
+                            ✦
+                            <span>Summary</span>
+                        </button>
+
+
+                        <button
+                            class="leave-btn"
+                            id="leaveMeetingBtn"
+                        >
+                            Leave Meeting
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================
+                     RIGHT SIDEBAR
+                     ========================= -->
+
+                <aside class="meeting-sidebar">
+
+                    <!-- Participants -->
+
+                    <div class="side-card">
+
+                        <div class="side-card-header">
+
+                            <h3>Participants</h3>
+
+                            <span id="participantCount">
+                                1
+                            </span>
+
+                        </div>
+
+
+                        <div
+                            class="participants"
+                            id="participants"
+                        >
+
+                            <div class="participant">
+
+                                <div class="avatar">
+                                    K
+                                </div>
+
+                                <div class="participant-info">
+
+                                    <strong>You</strong>
+
+                                    <span>Host</span>
+
+                                </div>
+
+                                <span class="online-dot"></span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Meeting Details -->
+
+                    <div class="side-card">
+
+                        <h3>Meeting Details</h3>
+
+                        <div class="detail-item">
+
+                            <span>Topic</span>
+
+                            <strong>Product Discussion</strong>
+
+                        </div>
+
+
+                        <div class="detail-item">
+
+                            <span>Status</span>
+
+                            <strong id="meetingStatus">
+                                Live
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- AI Suggestions -->
+
+                    <div class="side-card">
+
+                        <h3>AI Suggestions</h3>
+
+                        <div
+                            class="ai-suggestion"
+                            id="aiSuggestion"
+                        >
+                            AI suggestions will appear here
+                            during the meeting.
+                        </div>
+
+                    </div>
+
+                </aside>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <!-- =========================
+         JAVASCRIPT
+         ========================= -->
+
+    <script src="js/meeting.js"></script>
+
+</body>
+</html>

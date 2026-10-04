@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Meeting Details</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .header {
+            padding: 22px 28px;
+            background: #111827;
+            border-bottom: 1px solid #334155;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        .header p {
+            color: #94a3b8;
+            margin: 7px 0 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            padding: 25px;
+        }
+
+        .back-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .meeting-info,
+        .participants,
+        .transcript {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .info {
+            color: #cbd5e1;
+            margin: 8px 0;
+        }
+
+        .participant {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #0f172a;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin: 5px;
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #2563eb;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-weight: bold;
+        }
+
+        .message {
+            background: #0f172a;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .message strong {
+            color: #60a5fa;
+        }
+
+        .message p {
+            margin: 6px 0 0;
+            color: #cbd5e1;
+        }
+
+        .time {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <header class="header">
+
+        <h1>🤖 AI Meeting Assistant</h1>
+
+        <p>Meeting Details & History</p>
+
+    </header>
+
+
+    <main class="container">
+
+        <button
+            class="back-btn"
+            onclick="goBack()">
+
+            ← Back to History
+
+        </button>
+
+
+        <!-- Meeting Information -->
+
+        <section class="meeting-info">
+
+            <h2>📋 Meeting Information</h2>
+
+            <div id="meetingInfo"></div>
+
+        </section>
+
+
+        <!-- Participants -->
+
+        <section class="participants">
+
+            <h2>👥 Participants</h2>
+
+            <div id="participantsList"></div>
+
+        </section>
+
+
+        <!-- Transcript -->
+
+        <section class="transcript">
+
+            <h2>Meeting Summary</h2>
+
+            <pre id="summaryText" class="info" style="white-space:pre-wrap"></pre>
+
+        </section>
+
+        <section class="transcript">
+
+            <h2>📝 Meeting Transcript</h2>
+
+            <div id="transcriptList"></div>
+
+        </section>
+
+    </main>
+
+
+    <script>
+
+        const storedMeeting =
+            sessionStorage.getItem("selectedMeeting");
+
+
+        if (!storedMeeting) {
+
+            document.body.innerHTML =
+                "<h2 style='padding:30px'>Meeting data not found.</h2>";
+
+        } else {
+
+            const data =
+                JSON.parse(storedMeeting);
+
+
+            // Meeting information
+
+            const meetingInfo =
+                document.getElementById("meetingInfo");
+
+            meetingInfo.innerHTML = `
+
+                <p class="info">
+                    <strong>Title:</strong>
+                    ${data.meeting.title}
+                </p>
+
+                <p class="info">
+                    <strong>Meeting ID:</strong>
+                    ${data.meeting.id}
+                </p>
+
+                <p class="info">
+                    <strong>Date:</strong>
+                    ${data.meeting.created_at}
+                </p>
+
+            `;
+
+            document.getElementById("summaryText").textContent =
+                data.meeting.summary || "No summary has been generated for this meeting.";
+
+
+            // Participants
+
+            const participantsList =
+                document.getElementById(
+                    "participantsList"
+                );
+
+
+            if (data.participants.length === 0) {
+
+                participantsList.innerHTML =
+                    "<p>No participants found.</p>";
+
+            } else {
+
+                data.participants.forEach(user => {
+
+                    const div =
+                        document.createElement("div");
+
+                    div.className = "participant";
+
+                    div.innerHTML = `
+
+                        <div class="avatar">
+                            ${user.username
+                                .charAt(0)
+                                .toUpperCase()}
+                        </div>
+
+                        <span>
+                            ${user.username}
+                        </span>
+
+                    `;
+
+                    participantsList.appendChild(div);
+
+                });
+
+            }
+
+
+            // Transcript
+
+            const transcriptList =
+                document.getElementById(
+                    "transcriptList"
+                );
+
+
+            if (data.messages.length === 0) {
+
+                transcriptList.innerHTML =
+                    "<p>No messages found.</p>";
+
+            } else {
+
+                data.messages.forEach(message => {
+
+                    const div =
+                        document.createElement("div");
+
+                    div.className = "message";
+
+                    div.innerHTML = `
+
+                        <strong>
+                            ${message.username}:
+                        </strong>
+
+                        <p>
+                            ${message.message}
+                        </p>
+
+                        <span class="time">
+                            ${message.created_at}
+                        </span>
+
+                    `;
+
+                    transcriptList.appendChild(div);
+
+                });
+
+            }
+
+        }
+
+
+        function goBack() {
+
+            window.location.href = "index.html";
+
+        }
+
+    </script>
+
+</body>
+
+</html>
