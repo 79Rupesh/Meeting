@@ -4,16 +4,26 @@ import os
 import time
 import json
 import re
+import sys
+from pathlib import Path
 from dotenv import load_dotenv
 from google.genai import types
 
 
-load_dotenv()
+if getattr(sys, "frozen", False):
+    load_dotenv(Path(sys.executable).resolve().parent / ".env")
+else:
+    load_dotenv()
 # ---------------------------------------------------------
 # Persistent Gemini Quota Lock
 # ---------------------------------------------------------
 
-QUOTA_LOCK_FILE = "database/gemini_quota_lock.json"
+if getattr(sys, "frozen", False):
+    _quota_directory = Path(os.getenv("LOCALAPPDATA", Path.home())) / "AI Meeting Companion"
+    _quota_directory.mkdir(parents=True, exist_ok=True)
+    QUOTA_LOCK_FILE = str(_quota_directory / "gemini_quota_lock.json")
+else:
+    QUOTA_LOCK_FILE = "database/gemini_quota_lock.json"
 
 
 def is_gemini_quota_locked():
@@ -96,10 +106,6 @@ def lock_gemini_quota(error_text):
 MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
 _client = None
-
-# Prevent unnecessary Gemini requests
-_last_ai_request_time = 0
-AI_COOLDOWN_SECONDS = 15
 
 # Prevent repeated questions from consuming quota
 _recent_questions = {}
@@ -323,9 +329,7 @@ def _is_duplicate_question(message):
 # AI Analysis
 # ---------------------------------------------------------
 
-def analyze_message(message):
-
-    global _last_ai_request_time
+def analyze_message(message, recent_context=""):
 
     message = message.strip()
 
@@ -373,37 +377,6 @@ def analyze_message(message):
             "topic": topic,
             "answer": "This question was already analyzed.",
             "suggestion": "Continue with the meeting discussion."
-        }
-
-    # ---------------------------------------------
-    # Cooldown protection
-    # ---------------------------------------------
-
-    now = time.time()
-
-    if now - _last_ai_request_time < AI_COOLDOWN_SECONDS:
-
-        remaining = int(
-            AI_COOLDOWN_SECONDS -
-            (now - _last_ai_request_time)
-        )
-
-        print(
-            f"AI cooldown active. "
-            f"Wait {remaining}s."
-        )
-
-        return {
-            "is_question": True,
-            "topic": topic,
-            "answer": (
-                "AI is processing another question. "
-                "Please wait a few seconds."
-            ),
-            "suggestion": (
-                "Continue the discussion while "
-                "the AI becomes available."
-            )
         }
 
     # ---------------------------------------------
@@ -462,7 +435,8 @@ def analyze_message(message):
     prompt = f"""
 You are an AI Meeting Assistant for an authorized live meeting.
 
-Analyze the following meeting question.
+Analyze the following meeting question using the recent meeting context when it
+helps resolve references such as "it", "this", or "they".
 
 Return exactly these four lines:
 
@@ -481,6 +455,10 @@ Rules:
 - If the question needs context, clearly mention that.
 - Keep the answer concise and useful.
 
+Recent meeting context (may be empty):
+
+{recent_context[-6000:]}
+
 Meeting question:
 
 {message}
@@ -491,8 +469,6 @@ Meeting question:
     # ---------------------------------------------
 
     try:
-
-        _last_ai_request_time = time.time()
 
         print(
             "Gemini request:",

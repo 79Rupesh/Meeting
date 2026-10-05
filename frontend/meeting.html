@@ -36,7 +36,10 @@
                     ⋮
                 </button>
 
-                <div class="window-dot"></div>
+                <div class="header-online-status" aria-live="polite">
+                    <span class="window-dot"></span>
+                    <span id="onlineCount">0 Online</span>
+                </div>
 
                 <button class="close-btn" onclick="leaveMeeting()" title="Leave Meeting">
                     ×
@@ -89,10 +92,6 @@
                 LIVE
             </div>
 
-            <span id="onlineCount">
-                0 Online
-            </span>
-
         </div>
 
 
@@ -100,7 +99,7 @@
              PARTICIPANTS
         ========================== -->
 
-        <section class="participants-section">
+        <template id="legacyParticipantsTemplate">
 
             <div class="section-heading">
 
@@ -115,7 +114,7 @@
             <div id="participants" class="participants">
             </div>
 
-        </section>
+        </template>
 
 
         <!-- =========================

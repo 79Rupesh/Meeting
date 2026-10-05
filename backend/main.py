@@ -1,5 +1,6 @@
 import asyncio
-import sqlite3
+import sys
+from pathlib import Path
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,14 +9,25 @@ from pydantic import BaseModel
 
 from ai.assistant import analyze_message, generate_meeting_summary
 from backend.websocket import get_active_transcript, websocket_endpoint
-from database.database import save_summary
+from database.database import get_connection, save_summary
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+_resource_root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+app.mount("/frontend", StaticFiles(directory=_resource_root / "frontend"), name="frontend")
 
 class AnalyzeRequest(BaseModel):
     message: str
+
+
+def _extract_action_items(messages):
+    """Conservative local extraction so action items work without Gemini."""
+    triggers = ("will ", "need to", "needs to", "assigned", "action item", "todo", "by ")
+    return [
+        {"speaker": item["username"], "text": item["message"], "created_at": item["created_at"]}
+        for item in messages
+        if any(trigger in item["message"].lower() for trigger in triggers)
+    ][-20:]
 
 @app.get("/")
 async def home():
@@ -40,17 +52,20 @@ async def meeting_summary():
         save_summary(meeting_state.active_meeting_id, summary)
     return {"summary": summary}
 
+
+@app.get("/meeting/action-items")
+async def meeting_action_items():
+    return {"action_items": _extract_action_items(get_active_transcript())}
+
 @app.get("/meetings")
 async def get_meetings():
-    with sqlite3.connect("database/meeting_assistant.db") as db:
-        db.row_factory = sqlite3.Row
+    with get_connection() as db:
         meetings = db.execute("SELECT id, title, summary, created_at FROM meetings ORDER BY id DESC").fetchall()
     return {"meetings": [dict(meeting) for meeting in meetings]}
 
 @app.get("/meetings/{meeting_id}")
 async def get_meeting_details(meeting_id: int):
-    with sqlite3.connect("database/meeting_assistant.db") as db:
-        db.row_factory = sqlite3.Row
+    with get_connection() as db:
         meeting = db.execute("SELECT id, title, summary, created_at FROM meetings WHERE id = ?", (meeting_id,)).fetchone()
         if not meeting:
             return {"error": "Meeting not found"}

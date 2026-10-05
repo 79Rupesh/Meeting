@@ -1,9 +1,18 @@
 import sqlite3
+import os
+import sys
 from pathlib import Path
 from datetime import datetime
 
 
-DATABASE_PATH = Path(__file__).parent / "meeting_assistant.db"
+if getattr(sys, "frozen", False):
+    # The PyInstaller extraction directory is temporary. Keep meeting history
+    # in the user's profile so it survives application updates and restarts.
+    _data_directory = Path(os.getenv("LOCALAPPDATA", Path.home())) / "AI Meeting Companion"
+    _data_directory.mkdir(parents=True, exist_ok=True)
+    DATABASE_PATH = _data_directory / "meeting_assistant.db"
+else:
+    DATABASE_PATH = Path(__file__).parent / "meeting_assistant.db"
 
 
 def get_connection():

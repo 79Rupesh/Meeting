@@ -88,9 +88,6 @@ function handleServerMessage(data) {
             data.online_users
         );
 
-        updateParticipant(
-            data.username
-        );
     }
 
 
@@ -110,6 +107,13 @@ function handleServerMessage(data) {
     if (data.type === "ai_suggestion") {
 
         showAIResult(data);
+    }
+
+    if (data.type === "topic_update") {
+        const topic = document.getElementById("topic");
+        if (topic) {
+            topic.textContent = data.topic;
+        }
     }
 }
 
@@ -234,60 +238,6 @@ function updateOnlineUsers(count) {
 // PARTICIPANT
 // ======================================================
 
-function updateParticipant(name) {
-
-    const id =
-        `participant-${name}`;
-
-    if (document.getElementById(id)) {
-        return;
-    }
-
-
-    const participant =
-        document.createElement("div");
-
-    participant.className =
-        "participant";
-
-    participant.id =
-        id;
-
-
-    participant.innerHTML = `
-        <div class="avatar"></div>
-        <h3></h3>
-        <p>Online</p>
-    `;
-
-
-    participant
-        .querySelector(".avatar")
-        .textContent =
-        name.charAt(0).toUpperCase();
-
-
-    participant
-        .querySelector("h3")
-        .textContent =
-        name;
-
-
-    const participants =
-        document.getElementById(
-            "participants"
-        );
-
-
-    if (participants) {
-
-        participants.appendChild(
-            participant
-        );
-    }
-}
-
-
 // ======================================================
 // CHECK WEBSOCKET
 // ======================================================
@@ -305,7 +255,7 @@ function isMeetingConnected() {
 // SEND TEXT TO MEETING
 // ======================================================
 
-function sendTextToMeeting(message) {
+function sendTextToMeeting(message, speaker = null) {
 
     if (!message) {
 
@@ -335,7 +285,7 @@ function sendTextToMeeting(message) {
     );
 
 
-    socket.send(message);
+    socket.send(speaker ? JSON.stringify({ message, speaker }) : message);
 
     return true;
 }
@@ -688,6 +638,11 @@ async function getSummary() {
 // ======================================================
 
 function leaveMeeting() {
+
+    stopPythonSpeaking();
+    if (systemAudioActive && window.pywebview && window.pywebview.api) {
+        window.pywebview.api.stop_system_audio();
+    }
 
     if (socket) {
 
@@ -1121,13 +1076,8 @@ async function viewCompactMeeting(meetingId) {
             return;
         }
 
-        sessionStorage.setItem(
-            "selectedMeeting",
-            JSON.stringify(data)
-        );
-
-        window.location.href =
-            "meeting-history.html";
+        sessionStorage.setItem("selectedMeeting", JSON.stringify(data));
+        showCompactMeetingDetails(data);
 
     } catch (error) {
 
@@ -1140,6 +1090,122 @@ async function viewCompactMeeting(meetingId) {
             "Unable to load meeting details."
         );
     }
+}
+
+
+function showCompactMeetingDetails(data) {
+
+    const panel = document.getElementById("historyOverlay");
+    if (!panel || !data || !data.meeting) {
+        return;
+    }
+
+    panel.replaceChildren();
+
+    const topbar = document.createElement("div");
+    topbar.className = "history-topbar";
+
+    const backButton = document.createElement("button");
+    backButton.className = "history-back-btn";
+    backButton.textContent = "← Back";
+    backButton.onclick = showCompactMeetingHistory;
+
+    const heading = document.createElement("h2");
+    heading.textContent = "Meeting Details";
+
+    const closeButton = document.createElement("button");
+    closeButton.className = "history-close-btn";
+    closeButton.textContent = "×";
+    closeButton.title = "Close meeting history";
+    closeButton.onclick = toggleMeetingHistory;
+
+    topbar.append(backButton, heading, closeButton);
+
+    const content = document.createElement("div");
+    content.className = "compact-meeting-details";
+
+    const info = document.createElement("section");
+    info.className = "detail-section";
+    info.innerHTML = "<h3>Meeting Information</h3>";
+    [["Title", data.meeting.title], ["Meeting ID", data.meeting.id], ["Date", data.meeting.created_at]].forEach(([label, value]) => {
+        const line = document.createElement("p");
+        const strong = document.createElement("strong");
+        strong.textContent = `${label}: `;
+        line.append(strong, document.createTextNode(value || "Not available"));
+        info.appendChild(line);
+    });
+
+    const participants = document.createElement("section");
+    participants.className = "detail-section";
+    participants.innerHTML = "<h3>Participants</h3>";
+    const names = (data.participants || []).map((participant) => participant.username).filter(Boolean);
+    const participantText = document.createElement("p");
+    participantText.textContent = names.length ? names.join(", ") : "No participants recorded.";
+    participants.appendChild(participantText);
+
+    const questions = (data.messages || []).filter((message) => /\?|^(what|why|how|when|where|who|which|can|could|would|should|is|are|do|does|did|will)\b/i.test(message.message || ""));
+    const questionSection = document.createElement("section");
+    questionSection.className = "detail-section";
+    questionSection.innerHTML = "<h3>Questions Discussed</h3>";
+    const questionText = document.createElement("p");
+    questionText.textContent = questions.length
+        ? questions.map((message) => `${message.username}: ${message.message}`).join("\n")
+        : "No questions detected in the stored transcript.";
+    questionText.className = "detail-pre";
+    questionSection.appendChild(questionText);
+
+    if (data.meeting.summary) {
+        const summary = document.createElement("section");
+        summary.className = "detail-section";
+        summary.innerHTML = "<h3>Meeting Summary</h3>";
+        const summaryText = document.createElement("p");
+        summaryText.className = "detail-pre";
+        summaryText.textContent = data.meeting.summary;
+        summary.appendChild(summaryText);
+        content.append(info, participants, questionSection, summary);
+    } else {
+        content.append(info, participants, questionSection);
+    }
+
+    const transcript = document.createElement("section");
+    transcript.className = "detail-section transcript-details";
+    transcript.innerHTML = "<h3>Complete Transcript</h3>";
+    const messages = data.messages || [];
+    if (!messages.length) {
+        const empty = document.createElement("p");
+        empty.textContent = "No transcript messages were stored for this meeting.";
+        transcript.appendChild(empty);
+    }
+    messages.forEach((message) => {
+        const row = document.createElement("article");
+        row.className = "detail-message";
+        const speaker = document.createElement("strong");
+        speaker.textContent = `${message.username || "Unknown"}: `;
+        const body = document.createElement("span");
+        body.textContent = message.message || "";
+        const timestamp = document.createElement("time");
+        timestamp.textContent = message.created_at || "";
+        row.append(speaker, body, timestamp);
+        transcript.appendChild(row);
+    });
+    content.appendChild(transcript);
+    panel.append(topbar, content);
+}
+
+
+function showCompactMeetingHistory() {
+    const panel = document.getElementById("historyOverlay");
+    if (!panel) {
+        return;
+    }
+    panel.innerHTML = `
+        <div class="history-topbar">
+            <div><h2>Meeting History</h2><span>Previous meetings</span></div>
+            <button class="history-close-btn" onclick="toggleMeetingHistory()" title="Close meeting history">×</button>
+        </div>
+        <div id="compactMeetingHistory" class="compact-meeting-history"><div class="history-loading">Loading meetings...</div></div>
+        <button class="back-meeting-btn" onclick="toggleMeetingHistory()">← Back to Meeting</button>`;
+    loadCompactMeetingHistory();
 }
 
 
@@ -1192,9 +1258,17 @@ function openHistoryFromMenu() {
 
 function showActionItems() {
 
-    alert(
-        "Action Items feature will be added next."
-    );
+    fetch("http://127.0.0.1:8000/meeting/action-items")
+        .then((response) => response.ok ? response.json() : Promise.reject())
+        .then((data) => {
+            const items = data.action_items || [];
+            alert(items.length
+                ? "Action Items:\n\n" + items.map((item) => `${item.speaker}: ${item.text}`).join("\n\n")
+                : "No action items detected yet.");
+        })
+        .catch(() => alert("Unable to load action items."));
+
+    return;
 
 }
 
@@ -1303,6 +1377,10 @@ function receiveSystemAudioTranscript(speaker, text) {
     if (!text) {
         return;
     }
+
+    // Persist and analyze meeting audio through the existing live channel.
+    sendTextToMeeting(text.trim(), speaker || "Meeting Speaker");
+    return;
 
     const messages = document.getElementById("messages");
 

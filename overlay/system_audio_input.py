@@ -37,10 +37,10 @@ class SystemAudioSpeechProvider:
 
         # Speaker must remain silent for this time
         # before the speech segment is completed.
-        self.silence_seconds = 1.5
+        self.silence_seconds = 0.8
 
         # Maximum size of one transcript block.
-        self.max_utterance_seconds = 30
+        self.max_utterance_seconds = 15
 
         # Ignore extremely short sounds.
         self.min_utterance_seconds = 0.7
