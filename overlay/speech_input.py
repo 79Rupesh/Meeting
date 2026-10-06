@@ -7,6 +7,7 @@ import tempfile
 import threading
 import wave
 from abc import ABC, abstractmethod
+from speech_worker_client import run_speech_worker
 
 import speech_recognition as sr
 
@@ -170,11 +171,9 @@ class MicrophoneSpeechProvider(MeetingInputProvider):
     # ---------------------------------------------------------
 
     def _recognize_using_worker(self, audio):
-
         audio_file = None
 
         try:
-
             audio_file = self._save_audio(audio)
 
             worker = self._get_worker_path()
@@ -184,100 +183,13 @@ class MicrophoneSpeechProvider(MeetingInputProvider):
                 worker
             )
 
-            # Python development mode
-            if not getattr(sys, "frozen", False):
-
-                command = [
-                    sys.executable,
-                    worker,
-                    audio_file
-                ]
-
-            # Packaged EXE mode
-            else:
-
-                command = [
-                    worker,
-                    audio_file
-                ]
-
-            result = subprocess.run(
-
-                command,
-
-                capture_output=True,
-
-                text=True,
-
-                timeout=30,
-
-                creationflags=(
-                    subprocess.CREATE_NO_WINDOW
-                    if os.name == "nt"
-                    else 0
-                )
+            text = run_speech_worker(
+                audio_file,
+                worker,
+                timeout=60
             )
 
-            output = result.stdout.strip()
-
-            error_output = result.stderr.strip()
-
-            print("🧠 Worker output:")
-            print(output)
-
-            if error_output:
-
-                print(
-                    "🧠 Worker error:"
-                )
-
-                print(error_output)
-
-            for line in output.splitlines():
-
-                # Successful recognition
-                if line.startswith("RESULT:"):
-
-                    text = line[
-                        len("RESULT:"):
-                    ].strip()
-
-                    return text
-
-                # Speech not understood
-                if line == "UNKNOWN_VALUE":
-
-                    return ""
-
-                # Google speech service error
-                if line.startswith("REQUEST_ERROR:"):
-
-                    print(
-                        "❌ Google Speech service error:",
-                        line
-                    )
-
-                    return ""
-
-                # Worker error
-                if line.startswith("ERROR:"):
-
-                    print(
-                        "❌ Speech worker error:",
-                        line
-                    )
-
-                    return ""
-
-            return ""
-
-        except subprocess.TimeoutExpired:
-
-            print(
-                "❌ Speech worker timeout."
-            )
-
-            return ""
+            return text
 
         except Exception as error:
 
@@ -300,13 +212,12 @@ class MicrophoneSpeechProvider(MeetingInputProvider):
             if audio_file:
 
                 try:
-
                     os.remove(audio_file)
 
                 except Exception:
-
                     pass
 
+                
     # ---------------------------------------------------------
     # CONTINUOUS LISTENING
     # ---------------------------------------------------------

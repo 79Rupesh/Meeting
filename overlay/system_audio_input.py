@@ -1,9 +1,15 @@
+import os
+import subprocess
+import sys
+import tempfile
 import threading
 import time
+import wave
 
 import numpy as np
 import sounddevice as sd
 import speech_recognition as sr
+from speech_worker_client import run_speech_worker
 
 
 class SystemAudioSpeechProvider:
@@ -25,8 +31,6 @@ class SystemAudioSpeechProvider:
 
         self.sample_rate = 48000
         self.channels = 2
-
-        # Small blocks = better real-time response
         self.block_seconds = 0.25
 
         # ==========================================
@@ -34,15 +38,8 @@ class SystemAudioSpeechProvider:
         # ==========================================
 
         self.speech_threshold = -42
-
-        # Speaker must remain silent for this time
-        # before the speech segment is completed.
         self.silence_seconds = 0.8
-
-        # Maximum size of one transcript block.
         self.max_utterance_seconds = 15
-
-        # Ignore extremely short sounds.
         self.min_utterance_seconds = 0.7
 
         # ==========================================
@@ -65,7 +62,6 @@ class SystemAudioSpeechProvider:
         # ==========================================
 
         self.audio_buffer = []
-
         self.speech_active = False
         self.silence_time = 0
         self.speech_duration = 0
@@ -145,11 +141,13 @@ class SystemAudioSpeechProvider:
     ):
 
         if self._stop_event.is_set():
+
             return
 
         try:
 
             if status:
+
                 print("Audio status:", status)
 
             # ==========================================
@@ -194,14 +192,12 @@ class SystemAudioSpeechProvider:
 
             if db > self.speech_threshold:
 
-                # Add audio to current segment
                 self.audio_buffer.extend(
                     audio.tolist()
                 )
 
                 self.speech_active = True
 
-                # Speech is active again
                 self.silence_time = 0
 
                 self.speech_duration += (
@@ -218,21 +214,19 @@ class SystemAudioSpeechProvider:
                 ):
 
                     print(
-                        "⏱️ Maximum speech segment reached"
+                        "Maximum speech segment reached"
                     )
 
                     self._finish_utterance()
 
             # ==========================================
-            # SILENCE DETECTED
+            # SILENCE
             # ==========================================
 
             else:
 
                 if self.speech_active:
 
-                    # Keep small amount of silence
-                    # at the end of the segment.
                     self.audio_buffer.extend(
                         audio.tolist()
                     )
@@ -251,7 +245,7 @@ class SystemAudioSpeechProvider:
                     ):
 
                         print(
-                            "⏸️ Natural speech pause detected"
+                            "Natural speech pause detected"
                         )
 
                         self._finish_utterance()
@@ -275,10 +269,6 @@ class SystemAudioSpeechProvider:
 
             return
 
-        # ==========================================
-        # CREATE NUMPY AUDIO ARRAY
-        # ==========================================
-
         audio_data = np.array(
             self.audio_buffer,
             dtype=np.float32
@@ -289,45 +279,35 @@ class SystemAudioSpeechProvider:
             self.sample_rate
         )
 
-        print()
         print(
-            f"🎙️ Speech segment: "
-            f"{duration:.1f} seconds"
+            f"Speech segment: {duration:.1f} seconds"
         )
 
-        # ==========================================
-        # RESET BUFFER IMMEDIATELY
-        # ==========================================
-
         self._reset_segment()
-
-        # ==========================================
-        # IGNORE VERY SHORT AUDIO
-        # ==========================================
 
         if duration < self.min_utterance_seconds:
 
             print(
-                "🔇 Segment too short - ignored"
+                "Segment too short - ignored"
             )
 
             return
 
         # ==========================================
-        # CONVERT IN SEPARATE THREAD
+        # PROCESS OUTSIDE AUDIO CALLBACK
         # ==========================================
 
         thread = threading.Thread(
             target=self._convert_to_text,
             args=(audio_data,),
             daemon=True,
-            name="speech-to-text"
+            name="system-audio-speech-to-text"
         )
 
         thread.start()
 
     # ==================================================
-    # RESET SEGMENT
+    # RESET
     # ==================================================
 
     def _reset_segment(self):
@@ -341,6 +321,103 @@ class SystemAudioSpeechProvider:
         self.speech_duration = 0
 
     # ==================================================
+    # FIND SPEECH WORKER
+    # ==================================================
+
+    def _get_worker_path(self):
+
+        # Python development mode
+
+        if not getattr(
+            sys,
+            "frozen",
+            False
+        ):
+
+            current_dir = os.path.dirname(
+                os.path.abspath(__file__)
+            )
+
+            return os.path.join(
+                current_dir,
+                "speech_worker.py"
+            )
+
+        # Packaged EXE mode
+
+        base_dir = os.path.dirname(
+            sys.executable
+        )
+
+        return os.path.join(
+            base_dir,
+            "AI-Meeting-Speech-Worker.exe"
+        )
+
+    # ==================================================
+    # SAVE AUDIO AS WAV
+    # ==================================================
+
+    def _save_audio(
+        self,
+        audio_data
+    ):
+
+        audio_data = np.clip(
+            audio_data,
+            -1,
+            1
+        )
+
+        audio_int16 = (
+            audio_data * 32767
+        ).astype(
+            np.int16
+        )
+
+        temp_file = tempfile.NamedTemporaryFile(
+            suffix=".wav",
+            delete=False
+        )
+
+        temp_file.close()
+
+        try:
+
+            with wave.open(
+                temp_file.name,
+                "wb"
+            ) as wav_file:
+
+                wav_file.setnchannels(1)
+
+                wav_file.setsampwidth(2)
+
+                wav_file.setframerate(
+                    self.sample_rate
+                )
+
+                wav_file.writeframes(
+                    audio_int16.tobytes()
+                )
+
+            return temp_file.name
+
+        except Exception:
+
+            try:
+
+                os.remove(
+                    temp_file.name
+                )
+
+            except OSError:
+
+                pass
+
+            raise
+
+    # ==================================================
     # SPEECH -> TEXT
     # ==================================================
 
@@ -349,6 +426,8 @@ class SystemAudioSpeechProvider:
         audio_data
     ):
 
+        audio_file = None
+
         try:
 
             self.on_status(
@@ -356,111 +435,129 @@ class SystemAudioSpeechProvider:
                 "Converting meeting speech..."
             )
 
-            # ==========================================
-            # NORMALIZE AUDIO
-            # ==========================================
-
-            audio_data = np.clip(
-                audio_data,
-                -1,
-                1
+            print(
+                "SYSTEM_AUDIO_WAV_CREATED"
             )
 
-            # ==========================================
-            # FLOAT32 -> INT16
-            # ==========================================
+        # ==========================================
+        # SAVE AUDIO
+        # ==========================================
 
-            audio_int16 = (
-                audio_data * 32767
-            ).astype(
-                np.int16
+            audio_file = self._save_audio(
+                audio_data
             )
 
-            # ==========================================
-            # SPEECH RECOGNITION AUDIO
-            # ==========================================
-
-            audio = sr.AudioData(
-                audio_int16.tobytes(),
-                self.sample_rate,
-                2
-            )
+            worker = self._get_worker_path()
 
             print(
-                "🧠 Converting speech to text..."
+                "SYSTEM_AUDIO_WORKER:",
+                worker
             )
 
-            # ==========================================
-            # GOOGLE SPEECH RECOGNITION
-            # ==========================================
+        # ==========================================
+        # CHECK WORKER
+        # ==========================================
 
-            text = self.recognizer.recognize_google(
-                audio,
-                language="en-IN"
-            ).strip()
+            if not os.path.exists(worker):
 
-            if not text:
+                print(
+                    "Speech worker not found:",
+                    worker
+                )
 
                 return
 
-            # ==========================================
-            # SEGMENT NUMBER
-            # ==========================================
+        # ==========================================
+        # RUN SHARED SPEECH WORKER
+        # ==========================================
+
+            print(
+                "SYSTEM_AUDIO_WORKER_STARTED"
+            )
+
+            text = run_speech_worker(
+                audio_file,
+                worker,
+                timeout=60
+            )
+
+        # ==========================================
+        # NO TEXT
+        # ==========================================
+
+            if not text:
+
+                print(
+                    "No speech text returned."
+                )
+
+                return
+
+        # ==========================================
+        # SEGMENT NUMBER
+        # ==========================================
 
             self.segment_number += 1
 
-            print()
-            print("=" * 60)
             print(
-                f"📝 Meeting Segment "
+                "=" * 60
+            )
+
+            print(
+                f"Meeting Segment "
                 f"{self.segment_number}"
             )
-            print(text)
-            print("=" * 60)
 
-            # ==========================================
-            # SEND TO UI
-            #
-            # Speaker identification intentionally
-            # disabled for now.
-            # ==========================================
+            print(text)
+
+            print(
+                "=" * 60
+            )
+
+        # ==========================================
+        # SEND TO UI
+        # ==========================================
+
+            print(
+                "SYSTEM_AUDIO_TRANSCRIPT_SENT"
+            )
 
             self.on_text(
                 "Meeting Speaker",
                 text
             )
 
-        except sr.UnknownValueError:
-
-            print(
-                "❓ Could not understand speech segment."
-            )
-
-        except sr.RequestError as error:
-
-            print(
-                "Speech recognition error:",
-                error
-            )
-
-            self.on_status(
-                "idle",
-                "Speech service unavailable."
-            )
-
         except Exception as error:
 
             print(
-                "Speech processing error:",
-                error
+                "System audio speech processing error:",
+                type(error).__name__,
+                repr(error)
             )
 
         finally:
+
+        # ==========================================
+        # DELETE TEMP WAV
+        # ==========================================
+
+            if audio_file:
+
+                try:
+
+                    os.remove(
+                        audio_file
+                    )
+
+                except OSError:
+
+                    pass
 
             self.on_status(
                 "listening",
                 "Meeting audio listening..."
             )
+
 
     # ==================================================
     # MAIN AUDIO LOOP
@@ -477,20 +574,24 @@ class SystemAudioSpeechProvider:
 
             print()
             print(
-                "🎧 System audio started"
+                "System audio started"
             )
 
             print(
-                "🎧 Device:",
+                "Device:",
                 self.device
             )
 
             print(
-                "🎧 Continuous meeting audio capture started"
+                "Continuous meeting audio capture started"
+            )
+
+            print(
+                "SYSTEM_AUDIO_CAPTURE_STARTED"
             )
 
             # ==========================================
-            # CREATE AUDIO STREAM
+            # CREATE STREAM
             # ==========================================
 
             self.stream = sd.InputStream(
@@ -509,6 +610,7 @@ class SystemAudioSpeechProvider:
                 ),
 
                 callback=self._audio_callback
+
             )
 
             # ==========================================
@@ -518,7 +620,7 @@ class SystemAudioSpeechProvider:
             self.stream.start()
 
             print(
-                "✅ System audio stream started"
+                "System audio stream started"
             )
 
             # ==========================================
@@ -527,13 +629,16 @@ class SystemAudioSpeechProvider:
 
             while not self._stop_event.is_set():
 
-                time.sleep(0.1)
+                time.sleep(
+                    0.1
+                )
 
         except Exception as error:
 
             print(
                 "System audio error:",
-                error
+                type(error).__name__,
+                repr(error)
             )
 
             self.on_status(
@@ -544,7 +649,7 @@ class SystemAudioSpeechProvider:
         finally:
 
             # ==========================================
-            # CLOSE AUDIO STREAM
+            # CLOSE STREAM
             # ==========================================
 
             try:
@@ -578,10 +683,6 @@ class SystemAudioSpeechProvider:
                         error
                     )
 
-            # ==========================================
-            # RELEASE LOCK
-            # ==========================================
-
             self._stop_event.set()
 
             try:
@@ -593,7 +694,7 @@ class SystemAudioSpeechProvider:
                 pass
 
             print(
-                "🎧 System audio stopped"
+                "System audio stopped"
             )
 
             self.on_status(
